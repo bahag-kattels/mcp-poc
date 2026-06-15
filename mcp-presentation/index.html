@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MCP Gateway Deployment</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f1e8;
+      --card: #fffaf1;
+      --ink: #171717;
+      --muted: #5f5a52;
+      --line: rgba(23, 23, 23, 0.12);
+      --accent: #0f766e;
+      --accent-soft: rgba(15, 118, 110, 0.14);
+      --shadow: 0 24px 60px rgba(23, 23, 23, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at top left, rgba(15, 118, 110, 0.12), transparent 28%),
+        radial-gradient(circle at bottom right, rgba(23, 23, 23, 0.06), transparent 32%),
+        var(--bg);
+      color: var(--ink);
+      font-family: Georgia, "Times New Roman", serif;
+    }
+
+    .deck {
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+      display: grid;
+      place-items: center;
+      padding: 4vh 4vw;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 4vh 4vw;
+      width: auto;
+      min-height: auto;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(255, 250, 241, 0.96));
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      padding: clamp(28px, 5vw, 56px);
+      display: grid;
+      align-content: start;
+      gap: 18px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 260ms ease;
+      overflow: hidden;
+    }
+
+    .slide::after {
+      content: "";
+      position: absolute;
+      inset: auto -10% -18% auto;
+      width: 280px;
+      height: 280px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(15, 118, 110, 0.14), transparent 68%);
+      pointer-events: none;
+    }
+
+    .slide.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .kicker {
+      font-family: Arial, Helvetica, sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      font-size: 0.78rem;
+      color: var(--accent);
+      margin: 0;
+    }
+
+    h1,
+    h2,
+    h3,
+    p,
+    ul,
+    pre {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(2.4rem, 5vw, 4.6rem);
+      line-height: 0.98;
+      max-width: 12ch;
+    }
+
+    h2 {
+      font-size: clamp(1.8rem, 3vw, 2.6rem);
+      line-height: 1.05;
+      max-width: 16ch;
+    }
+
+    p,
+    li {
+      font-size: clamp(1.05rem, 1.7vw, 1.22rem);
+      line-height: 1.55;
+      color: var(--ink);
+    }
+
+    .lede {
+      max-width: 62ch;
+      color: var(--muted);
+      font-size: clamp(1.12rem, 1.8vw, 1.3rem);
+    }
+
+    .content {
+      display: grid;
+      gap: 16px;
+      max-width: 72ch;
+    }
+
+    ul {
+      padding-left: 1.2em;
+      display: grid;
+      gap: 10px;
+    }
+
+    li::marker {
+      color: var(--accent);
+    }
+
+    .code-block {
+      background: rgba(255, 255, 255, 0.82);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 18px;
+      overflow: auto;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 0.95rem;
+      line-height: 1.45;
+      white-space: pre;
+      max-width: 100%;
+    }
+
+    .code-inline {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      background: var(--accent-soft);
+      border-radius: 8px;
+      padding: 0.12em 0.35em;
+    }
+
+    .footer {
+      position: absolute;
+      left: 28px;
+      right: 28px;
+      bottom: 22px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 0.88rem;
+      color: var(--muted);
+      pointer-events: none;
+    }
+
+    .progress {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .bar {
+      width: min(180px, 28vw);
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(23, 23, 23, 0.08);
+      overflow: hidden;
+    }
+
+    .bar > span {
+      display: block;
+      height: 100%;
+      width: 0;
+      background: var(--accent);
+      transition: width 260ms ease;
+    }
+
+    .hint {
+      opacity: 0.9;
+    }
+
+    .split {
+      display: grid;
+      gap: 14px;
+    }
+
+    .compact {
+      max-width: 56ch;
+    }
+
+    @media (max-width: 720px) {
+      .deck {
+        padding: 12px;
+      }
+
+      .slide {
+        min-height: calc(100vh - 24px);
+        border-radius: 22px;
+        padding: 24px 20px 56px;
+      }
+
+      .footer {
+        left: 20px;
+        right: 20px;
+        bottom: 16px;
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .bar {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="deck" aria-label="MCP Gateway Deployment presentation">
+    <section class="slide active" data-title="MCP Gateway Deployment">
+      <p class="kicker">Presentation</p>
+      <h1>MCP Gateway Deployment</h1>
+      <p class="lede">What to ship, what to guard, and what product teams need to keep in mind.</p>
+      <div class="footer">
+        <div class="progress"><span>1 / 8</span><div class="bar"><span id="progressBar"></span></div></div>
+        <div class="hint">Use left and right arrow keys</div>
+      </div>
+    </section>
+
+    <section class="slide" data-title="Why this exists">
+      <p class="kicker">Slide 1</p>
+      <h2>Why this exists</h2>
+      <div class="content compact">
+        <p>MCP servers should be deployed as narrowly scoped, well-observed services behind an API gateway.</p>
+        <p>The goal is not to expose a general-purpose backend. The goal is to expose a controlled tool interface that agents can use safely.</p>
+      </div>
+      <div class="footer">
+        <div class="progress"><span>2 / 8</span><div class="bar"><span id="progressBar"></span></div></div>
+        <div class="hint">Left / Right to navigate</div>
+      </div>
+    </section>
+
+    <section class="slide" data-title="Recommended deployment model">
+      <p class="kicker">Slide 2</p>
+      <h2>Recommended deployment model</h2>
+      <div class="content">
+        <ul>
+          <li>Run the MCP server in a separate Cloud Run service or Cloud Run function.</li>
+          <li>Keep it isolated from the product application backend.</li>
+          <li>Use a minimal server implementation such as <span class="code-inline">../mcp-python/mcp-barebones.py</span>.</li>
+        </ul>
+      </div>
+      <div class="footer">
+        <div class="progress"><span>3 / 8</span><div class="bar"><span id="progressBar"></span></div></div>
+        <div class="hint">Minimal implementation, narrow scope</div>
+      </div>
+    </section>
+
+    <section class="slide" data-title="Apigee routing pattern">
+      <p class="kicker">Slide 3</p>
+      <h2>Apigee routing pattern</h2>
+      <div class="content">
+        <p>Route only the MCP path to the MCP target. Keep the default proxy path on the normal backend.</p>
+        <pre class="code-block">&lt;RouteRule name="to-mcp"&gt;
+  &lt;Condition&gt;(proxy.pathsuffix MatchesPath "/mcp/**")&lt;/Condition&gt;
+  &lt;TargetEndpoint&gt;mcp-target&lt;/TargetEndpoint&gt;
+&lt;/RouteRule&gt;
+
+&lt;RouteRule name="default"&gt;
+  &lt;TargetEndpoint&gt;default-target&lt;/TargetEndpoint&gt;
+&lt;/RouteRule&gt;</pre>
+      </div>
+      <div class="footer">
+        <div class="progress"><span>4 / 8</span><div class="bar"><span id="progressBar"></span></div></div>
+        <div class="hint">Route MCP separately</div>
+      </div>
+    </section>
+
+    <section class="slide" data-title="v2 gateway routing pattern">
+      <p class="kicker">Slide 4</p>
+      <h2>v2 gateway routing pattern</h2>
+      <div class="content">
+        <p>Create a dedicated backend entry for the MCP service and map only the MCP path prefix to it.</p>
+        <pre class="code-block">product-recommendation-dev = {
+  hosts = [
+    "dev.api.bauhaus",
+    "qa.api.bauhaus"
+  ]
+  type       = "cloudrun"
+  name       = "reg-ext-lb-cr-oneapi-schnell-bs"
+  region     = "europe-west1"
+  project_id = "recoservice-dev-4492"
+  paths = [
+    {
+      path         = "/v2/product-recommendation/5/mcp/*"
+      backend_path = "/"
+    }
+  ]
+}</pre>
+      </div>
+      <div class="footer">
+        <div class="progress"><span>5 / 8</span><div class="bar"><span id="progressBar"></span></div></div>
+        <div class="hint">Keep the path prefix tight</div>
+      </div>
+    </section>
+
+    <section class="slide" data-title="Caveats for agents">
+      <p class="kicker">Slide 5</p>
+      <h2>Caveats for agents</h2>
+      <div class="content">
+        <ul>
+          <li>Treat MCP tools as constrained actions, not open-ended application access.</li>
+          <li>Assume every tool call may be repeated, retried, or malformed.</li>
+          <li>Never rely on the agent to infer business policy from the model prompt alone.</li>
+          <li>Do not expose secrets, credentials, or privileged internal endpoints through MCP.</li>
+          <li>Keep tool outputs small, explicit, and deterministic where possible.</li>
+          <li>Fail closed when validation, auth, or routing is ambiguous.</li>
+        </ul>
+      </div>
+      <div class="footer">
+        <div class="progress"><span>6 / 8</span><div class="bar"><span id="progressBar"></span></div></div>
+        <div class="hint">Assume retries and bad inputs</div>
+      </div>
+    </section>
+
+    <section class="slide" data-title="Required guardrails">
+      <p class="kicker">Slide 6</p>
+      <h2>Required guardrails</h2>
+      <div class="content">
+        <ul>
+          <li>Path-level isolation so only <span class="code-inline">/mcp/*</span> reaches the MCP backend.</li>
+          <li>Input validation for all tool arguments and payloads.</li>
+          <li>Strict timeout and size limits for requests and responses.</li>
+          <li>Rate limiting and abuse protection at the gateway.</li>
+          <li>Structured logging and traceability for every tool invocation.</li>
+          <li>Safe defaults for retries, error handling, and partial failures.</li>
+        </ul>
+      </div>
+      <div class="footer">
+        <div class="progress"><span>7 / 8</span><div class="bar"><span id="progressBar"></span></div></div>
+        <div class="hint">Fail closed by default</div>
+      </div>
+    </section>
+
+    <section class="slide" data-title="What product teams should keep in mind">
+      <p class="kicker">Slide 7</p>
+      <h2>What product teams should keep in mind</h2>
+      <div class="content">
+        <ul>
+          <li>Define the exact job the agent is allowed to do before exposing a tool.</li>
+          <li>Decide what the tool must never do, and encode that in the gateway and backend.</li>
+          <li>Design for narrow workflows, not broad autonomy.</li>
+          <li>Document ownership: who maintains the tools, schemas, and routing rules.</li>
+          <li>Plan versioning and compatibility before changing any tool contract.</li>
+          <li>Make failure modes visible to users and support teams.</li>
+          <li>Treat observability as product infrastructure, not optional logging.</li>
+        </ul>
+      </div>
+      <div class="footer">
+        <div class="progress"><span>8 / 8</span><div class="bar"><span id="progressBar"></span></div></div>
+        <div class="hint">Keep the contract narrow</div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const slides = Array.from(document.querySelectorAll('.slide'));
+    let current = 0;
+    let animating = false;
+
+    function updateProgress() {
+      const active = slides[current];
+      const bar = active.querySelector('#progressBar');
+      if (bar) {
+        bar.style.width = `${((current + 1) / slides.length) * 100}%`;
+      }
+      document.title = `${active.dataset.title} · MCP Gateway Deployment`;
+    }
+
+    function showSlide(index, direction) {
+      if (index < 0 || index >= slides.length || index === current || animating) return;
+      animating = true;
+      const previous = slides[current];
+      const next = slides[index];
+
+      previous.style.opacity = '0';
+      previous.classList.remove('active');
+
+      next.classList.add('active');
+      requestAnimationFrame(() => {
+        next.style.opacity = '1';
+      });
+
+      current = index;
+      updateProgress();
+      window.setTimeout(() => {
+        animating = false;
+      }, 270);
+    }
+
+    function nextSlide() {
+      showSlide(current + 1, 'next');
+    }
+
+    function previousSlide() {
+      showSlide(current - 1, 'prev');
+    }
+
+    window.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowRight' || event.key === 'PageDown' || event.key === ' ') {
+        event.preventDefault();
+        nextSlide();
+      }
+      if (event.key === 'ArrowLeft' || event.key === 'PageUp') {
+        event.preventDefault();
+        previousSlide();
+      }
+    });
+
+    updateProgress();
+  </script>
+</body>
+</html>
