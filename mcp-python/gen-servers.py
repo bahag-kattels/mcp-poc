@@ -4,15 +4,8 @@ import yaml
 import subprocess
 import sys
 import json
+from config import CONFIG_FOLDER, SWAGGERHUB_OWNER, PARENT
 
-PARENT = Path(__file__).parent
-CONFIG_FOLDER = PARENT / "specs"
-
-if not CONFIG_FOLDER.exists():
-    CONFIG_FOLDER.mkdir(parents=True)
-
-
-SWAGGERHUB_OWNER = "BAHAG"
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="MCP Server Generation Script: Generates a server based on the provided configuration file.")

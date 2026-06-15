@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import dotenv
 
 dotenv.load_dotenv()
@@ -8,3 +9,12 @@ HEADERS = {
     "Content-Type": "application/json",
     "apikey": API_KEY,
 }
+
+PARENT = Path(__file__).parent
+CONFIG_FOLDER = PARENT / "specs"
+
+if not CONFIG_FOLDER.exists():
+    CONFIG_FOLDER.mkdir(parents=True)
+
+
+SWAGGERHUB_OWNER = "BAHAG"
