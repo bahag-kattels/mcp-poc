@@ -29,7 +29,7 @@ if not BASE_URL:
     exit(1)
 
 # Create HTTP client for target API
-client = httpx.AsyncClient(base_url=BASE_URL, headers=HEADERS)
+client = httpx.AsyncClient(base_url=BASE_URL, headers={{**HEADERS}})
 
 # Generate MCP server
 mcp = FastMCP.from_openapi(

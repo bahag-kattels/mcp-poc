@@ -35,12 +35,12 @@ def save_spec_file(api_name, version) -> None:
     print(f"API spec for {api_name} saved to {config_path}")
 
 def generate_server(api_name, env, port, mcp_json) -> None:
-    with open("mcp-barebones.py", "r") as f:
+    with open(PARENT / "mcp-barebones.py", "r") as f:
         template = f.read()
     
     template = template.format(API_NAME=api_name, ENV=env, PORT=port)
 
-    with open(f"mcp-{api_name}-server.py", "w") as f:
+    with open(PARENT / f"mcp-{api_name}-server.py", "w") as f:
         f.write(template)
     
     if mcp_json:
@@ -48,6 +48,8 @@ def generate_server(api_name, env, port, mcp_json) -> None:
 
         if not mcp_config_path.parent.exists():
             mcp_config_path.parent.mkdir(parents=True)
+            with open(mcp_config_path, "w") as f:
+                json.dump({"servers": {}}, f, indent=4)
 
         with open(mcp_config_path, "r") as f:
             mcp_config = json.load(f)
