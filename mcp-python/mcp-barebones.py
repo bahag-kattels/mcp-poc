@@ -29,13 +29,14 @@ if not BASE_URL:
     exit(1)
 
 # Create HTTP client for target API
-client = httpx.AsyncClient(base_url=BASE_URL, headers={{**HEADERS}})
+CLIENT = httpx.AsyncClient(base_url=BASE_URL, headers={{**HEADERS}})
+API_NAME = openapi_spec.get("info", {{}}).get("title", "UNKNOWN:::MCP Server")
 
 # Generate MCP server
 mcp = FastMCP.from_openapi(
     openapi_spec=openapi_spec,
-    client=client,
-    name=openapi_spec.get("info", {{}}).get("title", "UNKNOWN:::MCP Server")
+    client=CLIENT,
+    name=API_NAME
 )
 
 if __name__ == "__main__":

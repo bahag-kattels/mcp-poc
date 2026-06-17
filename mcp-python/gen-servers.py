@@ -4,7 +4,8 @@ import yaml
 import subprocess
 import sys
 import json
-from config import CONFIG_FOLDER, SWAGGERHUB_OWNER, PARENT
+import httpx
+from config import CONFIG_FOLDER, SWAGGERHUB_HEADERS, SWAGGERHUB_OWNER, PARENT, SWAGGERHUB_API_KEY
 
 
 def parse_args() -> argparse.Namespace:
@@ -18,16 +19,29 @@ def parse_args() -> argparse.Namespace:
 
 
 def save_spec_file(api_name, version) -> None:
-    if not version:
-        result = subprocess.run(["swaggerhub", "api:get", f"{SWAGGERHUB_OWNER}/{api_name}"], capture_output=True, text=True)
-    else:
-        result = subprocess.run(["swaggerhub", "api:get", f"{SWAGGERHUB_OWNER}/{api_name}/{version}"], capture_output=True, text=True)
+    with httpx.Client() as client:
+        if not version:
+            r = client.get(f"https://api.swaggerhub.com/apis/{SWAGGERHUB_OWNER}/{api_name}?resolved=true", headers=SWAGGERHUB_HEADERS)
+        else:
+            r = client.get(f"https://api.swaggerhub.com/apis/{SWAGGERHUB_OWNER}/{api_name}/{version}/swagger.yaml?resolved=true", headers=SWAGGERHUB_HEADERS)
+        
+        config_text = r.text
 
-    config_text = result.stdout
+        if r.status_code != 200 or yaml.safe_load(config_text) is None:
+            print(f"Error: Failed to fetch API spec for {api_name} from SwaggerHub. Status code: {r.status_code}")
+            sys.exit(1)
 
-    if yaml.safe_load(config_text) is None or result.returncode != 0:
-        print(f"Error: API spec for {api_name} is empty or invalid.")
-        sys.exit(1)
+    # Swaggerhub CLI does not support resolved yaml files
+    # if not version:
+    #     result = subprocess.run(["swaggerhub", "api:get", f"{SWAGGERHUB_OWNER}/{api_name}"], capture_output=True, text=True)
+    # else:
+    #     result = subprocess.run(["swaggerhub", "api:get", f"{SWAGGERHUB_OWNER}/{api_name}/{version}"], capture_output=True, text=True)
+
+    # config_text = result.stdout
+
+    # if yaml.safe_load(config_text) is None or result.returncode != 0:
+    #     print(f"Error: API spec for {api_name} is empty or invalid.")
+    #     sys.exit(1)
     
     config_path = CONFIG_FOLDER / f"{api_name}.yaml"
     with open(config_path, "w") as f:
@@ -55,6 +69,15 @@ def generate_server(api_name, env, port, mcp_json) -> None:
             mcp_config = json.load(f)
             if mcp_config.get("servers") is None:
                 mcp_config["servers"] = {}
+        
+        server_names = []
+        for server in mcp_config["servers"]:
+            if mcp_config["servers"][server].get("url") == f"http://localhost:{port}/mcp":
+                print(f"\tWarning: A server with the same URL already exists in {mcp_config_path}. It will be overwritten:: {server}")
+                server_names.append(server)
+        
+        for server_name in server_names:
+            del mcp_config["servers"][server_name]
         
         if api_name in mcp_config['servers']:
             print(f"Warning: Overwriting existing config for {api_name} in {mcp_config_path}")
